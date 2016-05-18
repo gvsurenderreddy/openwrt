@@ -679,7 +679,7 @@
  		   __func__, driver, drv_priv);
 --- a/src/ap/ieee802_11.c
 +++ b/src/ap/ieee802_11.c
-@@ -881,7 +881,8 @@ int auth_sae_init_committed(struct hosta
+@@ -885,7 +885,8 @@ int auth_sae_init_committed(struct hosta
  
  
  static void handle_auth(struct hostapd_data *hapd,
@@ -689,7 +689,7 @@
  {
  	u16 auth_alg, auth_transaction, status_code;
  	u16 resp = WLAN_STATUS_SUCCESS;
-@@ -897,6 +898,11 @@ static void handle_auth(struct hostapd_d
+@@ -901,6 +902,11 @@ static void handle_auth(struct hostapd_d
  	char *identity = NULL;
  	char *radius_cui = NULL;
  	u16 seq_ctrl;
@@ -701,7 +701,7 @@
  
  	if (len < IEEE80211_HDRLEN + sizeof(mgmt->u.auth)) {
  		wpa_printf(MSG_INFO, "handle_auth - too short payload (len=%lu)",
-@@ -983,6 +989,14 @@ static void handle_auth(struct hostapd_d
+@@ -987,6 +993,14 @@ static void handle_auth(struct hostapd_d
  		resp = WLAN_STATUS_UNSPECIFIED_FAILURE;
  		goto fail;
  	}
@@ -716,7 +716,7 @@
  	if (res == HOSTAPD_ACL_PENDING) {
  		wpa_printf(MSG_DEBUG, "Authentication frame from " MACSTR
  			   " waiting for an external authentication",
-@@ -1694,13 +1708,18 @@ static void send_assoc_resp(struct hosta
+@@ -1767,7 +1781,7 @@ static void send_assoc_resp(struct hosta
  
  static void handle_assoc(struct hostapd_data *hapd,
  			 const struct ieee80211_mgmt *mgmt, size_t len,
@@ -725,9 +725,10 @@
  {
  	u16 capab_info, listen_interval, seq_ctrl, fc;
  	u16 resp = WLAN_STATUS_SUCCESS;
- 	const u8 *pos;
+@@ -1775,6 +1789,11 @@ static void handle_assoc(struct hostapd_
  	int left, i;
  	struct sta_info *sta;
+ 	wtp_handle_t *wtp_handle = wtp_get_handle();
 +	struct hostapd_ubus_request req = {
 +		.type = HOSTAPD_UBUS_ASSOC_REQ,
 +		.mgmt_frame = mgmt,
@@ -736,7 +737,7 @@
  
  	if (len < IEEE80211_HDRLEN + (reassoc ? sizeof(mgmt->u.reassoc_req) :
  				      sizeof(mgmt->u.assoc_req))) {
-@@ -1820,6 +1839,13 @@ static void handle_assoc(struct hostapd_
+@@ -1894,6 +1913,13 @@ static void handle_assoc(struct hostapd_
  		goto fail;
  	}
  
@@ -750,16 +751,25 @@
  	sta->capability = capab_info;
  	sta->listen_interval = listen_interval;
  
-@@ -2236,7 +2262,7 @@ int ieee802_11_mgmt(struct hostapd_data
+@@ -2468,7 +2494,7 @@ int ieee802_11_mgmt(struct hostapd_data
  
  
- 	if (stype == WLAN_FC_STYPE_PROBE_REQ) {
+ 	/* if (stype == WLAN_FC_STYPE_PROBE_REQ) {
 -		handle_probe_req(hapd, mgmt, len, fi->ssi_signal);
 +		handle_probe_req(hapd, mgmt, len, fi);
  		return 1;
- 	}
+ 	} */
  
-@@ -2251,17 +2277,17 @@ int ieee802_11_mgmt(struct hostapd_data
+@@ -2488,7 +2514,7 @@ int ieee802_11_mgmt(struct hostapd_data
+ 				break;
+ 			case WTP_STA_MODE_CTX:
+ 			case WTP_STA_MODE_CONNECTED:
+-				if (wtp_sta_bssid_cmp(hash_sta, hapd->own_addr) == 0) handle_probe_req(hapd, mgmt, len, fi->ssi_signal);
++				if (wtp_sta_bssid_cmp(hash_sta, hapd->own_addr) == 0) handle_probe_req(hapd, mgmt, len, fi);
+ 				break;
+ 		}
+ 		return 1;
+@@ -2507,19 +2533,19 @@ int ieee802_11_mgmt(struct hostapd_data
  	switch (stype) {
  	case WLAN_FC_STYPE_AUTH:
  		wpa_printf(MSG_DEBUG, "mgmt::auth");
@@ -769,12 +779,14 @@
  		break;
  	case WLAN_FC_STYPE_ASSOC_REQ:
  		wpa_printf(MSG_DEBUG, "mgmt::assoc_req");
+ 		wtp_sta_set_mode(hash_sta, WTP_STA_MODE_CONNECTED);
 -		handle_assoc(hapd, mgmt, len, 0);
 +		handle_assoc(hapd, mgmt, len, 0, fi);
  		ret = 1;
  		break;
  	case WLAN_FC_STYPE_REASSOC_REQ:
  		wpa_printf(MSG_DEBUG, "mgmt::reassoc_req");
+ 		wtp_sta_set_mode(hash_sta, WTP_STA_MODE_CONNECTED);
 -		handle_assoc(hapd, mgmt, len, 1);
 +		handle_assoc(hapd, mgmt, len, 1, fi);
  		ret = 1;
