@@ -7,9 +7,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=hostapd
-PKG_VERSION:=2016-02-26
+PKG_VERSION:=2016-04-20
 PKG_RELEASE:=1
-PKG_REV:=277d55631677f00d2ad06f2e712a80e4bffed4d4
+PKG_REV:=5693e8d3ce7145ed02cf038ceb01d86df5c149c7
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=git://github.com/xradvanyip/hostapd-openwrt.git
@@ -148,7 +148,7 @@ define Package/wpad/Default
   SECTION:=net
   CATEGORY:=Network
   TITLE:=IEEE 802.1x Authenticator/Supplicant
-  DEPENDS:=$(DRV_DEPENDS) +hostapd-common +libubus
+  DEPENDS:=$(DRV_DEPENDS) +hostapd-common +libubus +libpthread
   URL:=http://hostap.epitest.fi/
 endef
 
@@ -299,11 +299,12 @@ TARGET_CPPFLAGS := \
 	-DCONFIG_CTRL_IFACE_MIB \
 	$(if $(CONFIG_WPA_MSG_MIN_PRIORITY),-DCONFIG_MSG_MIN_PRIORITY=$(CONFIG_WPA_MSG_MIN_PRIORITY))
 
-TARGET_CFLAGS += -ffunction-sections -fdata-sections
+TARGET_CFLAGS += -ffunction-sections -fdata-sections -std=gnu99
 TARGET_LDFLAGS += -Wl,--gc-sections
 ifeq ($(findstring supplicant,$(BUILD_VARIANT)),)
   TARGET_LDFLAGS += -lubox -lubus
 endif
+TARGET_LDFLAGS += -pthread
 
 ifdef CONFIG_PACKAGE_kmod-cfg80211
   TARGET_LDFLAGS += -lm -lnl-tiny
